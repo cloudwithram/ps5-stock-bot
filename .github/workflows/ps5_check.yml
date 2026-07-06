@@ -1,0 +1,42 @@
+name: PS5 Stock Checker
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check-ps5-stock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Restore de-dupe state
+        uses: actions/cache@v4
+        with:
+          path: ps5_state.json
+          key: ps5-state-${{ github.run_id }}
+          restore-keys: |
+            ps5-state-
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright Chromium browser
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run PS5 stock checker
+        env:
+          TELEGRAM_TOKEN:   ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PS5_PINCODE:      ${{ secrets.PS5_PINCODE }}
+        run: python ps5_check.py
